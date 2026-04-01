@@ -1,0 +1,5 @@
+node_modules/
+.env
+audio-output/
+*.log
+.DS_Store

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  voiceflow-pro:
+    build: .
+    container_name: voiceflow-pro
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - voiceflow-data:/data
+      - ./audio-output:/data/audio-output
+    environment:
+      - TZ=UTC
+      - NODE_RED_CREDENTIAL_SECRET=${NODE_RED_CREDENTIAL_SECRET:-voiceflow-secret-change-me}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - GOOGLE_TTS_API_KEY=${GOOGLE_TTS_API_KEY:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - OCTOPUS_API_URL=${OCTOPUS_API_URL}
+      - OCTOPUS_API_KEY=${OCTOPUS_API_KEY}
+    networks:
+      - voiceflow-net
+
+volumes:
+  voiceflow-data:
+
+networks:
+  voiceflow-net:
+    driver: bridge

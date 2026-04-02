@@ -1,0 +1,778 @@
+[
+    {
+        "id": "voiceflow-main",
+        "type": "tab",
+        "label": "VoiceFlow Pro",
+        "disabled": false,
+        "info": "Main application flows for VoiceFlow Pro TTS system"
+    },
+
+    {
+        "id": "n-comment-pages",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== PAGE ROUTES ===",
+        "x": 100, "y": 40, "wires": []
+    },
+
+    {
+        "id": "n-http-root",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /",
+        "url": "/",
+        "method": "get",
+        "x": 120, "y": 100,
+        "wires": [["n-redirect"]]
+    },
+    {
+        "id": "n-redirect",
+        "type": "change",
+        "z": "voiceflow-main",
+        "name": "Redirect to /app",
+        "rules": [
+            {"t": "set", "p": "statusCode", "pt": "msg", "to": "302", "tot": "num"},
+            {"t": "set", "p": "headers", "pt": "msg", "to": "{\"Location\":\"/app\"}", "tot": "json"}
+        ],
+        "x": 320, "y": 100,
+        "wires": [["n-redirect-resp"]]
+    },
+    {
+        "id": "n-redirect-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "302",
+        "statusCode": "302",
+        "x": 520, "y": 100,
+        "wires": []
+    },
+
+    {
+        "id": "n-http-app",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /app",
+        "url": "/app",
+        "method": "get",
+        "x": 120, "y": 160,
+        "wires": [["n-read-index"]]
+    },
+    {
+        "id": "n-read-index",
+        "type": "file in",
+        "z": "voiceflow-main",
+        "name": "Read index.html",
+        "filename": "/data/public/index.html",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "utf8",
+        "x": 320, "y": 160,
+        "wires": [["n-set-html"]]
+    },
+    {
+        "id": "n-set-html",
+        "type": "change",
+        "z": "voiceflow-main",
+        "name": "Set Content-Type HTML",
+        "rules": [
+            {"t": "set", "p": "headers", "pt": "msg", "to": "{\"Content-Type\":\"text/html; charset=utf-8\"}", "tot": "json"}
+        ],
+        "x": 540, "y": 160,
+        "wires": [["n-app-resp"]]
+    },
+    {
+        "id": "n-app-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200 OK",
+        "statusCode": "200",
+        "x": 740, "y": 160,
+        "wires": []
+    },
+
+    {
+        "id": "n-comment-health",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== HEALTH & API ===",
+        "x": 100, "y": 240, "wires": []
+    },
+
+    {
+        "id": "n-health-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /health",
+        "url": "/health",
+        "method": "get",
+        "x": 120, "y": 300,
+        "wires": [["n-health-func"]]
+    },
+    {
+        "id": "n-health-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Health Check",
+        "func": "msg.payload = {\n    status: 'healthy',\n    service: 'VoiceFlow Pro',\n    version: '1.0.0',\n    timestamp: new Date().toISOString()\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 320, "y": 300,
+        "wires": [["n-health-resp"]]
+    },
+    {
+        "id": "n-health-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 520, "y": 300,
+        "wires": []
+    },
+
+    {
+        "id": "n-comment-convert",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== TTS CONVERSION PIPELINE ===",
+        "x": 100, "y": 380, "wires": []
+    },
+
+    {
+        "id": "n-convert-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "POST /api/v1/conversions",
+        "url": "/api/v1/conversions",
+        "method": "post",
+        "x": 160, "y": 440,
+        "wires": [["n-validate"]]
+    },
+    {
+        "id": "n-validate",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Validate & Queue",
+        "func": "const body = msg.payload;\n\nif (!body.text || body.text.trim().length === 0) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'Text is required' };\n    return [null, msg];\n}\n\nconst id = Date.now().toString(36) + Math.random().toString(36).substr(2, 9);\n\nmsg.conversion = {\n    id: id,\n    text: body.text,\n    voice: body.voice || 'Roger',\n    provider: (body.settings && body.settings.provider) || 'elevenlabs',\n    stability: (body.settings && body.settings.stability) || 0.5,\n    similarity_boost: (body.settings && body.settings.similarity_boost) || 0.75,\n    metadata: body.metadata || {},\n    callback_url: body.callback_url || null,\n    status: 'queued',\n    created_at: new Date().toISOString(),\n    char_count: body.text.length,\n    word_count: body.text.split(/\\s+/).length\n};\n\nlet conversions = flow.get('conversions') || [];\nconversions.unshift(msg.conversion);\nflow.set('conversions', conversions);\n\nlet stats = flow.get('stats') || { total: 0, successful: 0, failed: 0, minutes_used: 0 };\nstats.total += 1;\nflow.set('stats', stats);\n\nmsg.payload = {\n    id: id,\n    status: 'queued',\n    message: 'Conversion queued successfully',\n    estimated_time: Math.ceil(body.text.length / 500) + 's'\n};\n\nreturn [msg, null];",
+        "outputs": 2,
+        "x": 420, "y": 440,
+        "wires": [["n-queue-resp", "n-process"], ["n-error-resp-400"]]
+    },
+    {
+        "id": "n-queue-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "201 Created",
+        "statusCode": "201",
+        "x": 680, "y": 420,
+        "wires": []
+    },
+    {
+        "id": "n-error-resp-400",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "400 Error",
+        "statusCode": "400",
+        "x": 680, "y": 460,
+        "wires": []
+    },
+
+    {
+        "id": "n-process",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Set Processing Status",
+        "func": "let conversions = flow.get('conversions') || [];\nconst idx = conversions.findIndex(c => c.id === msg.conversion.id);\nif (idx >= 0) {\n    conversions[idx].status = 'processing';\n    flow.set('conversions', conversions);\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 420, "y": 520,
+        "wires": [["n-provider-switch"]]
+    },
+    {
+        "id": "n-provider-switch",
+        "type": "switch",
+        "z": "voiceflow-main",
+        "name": "Route by Provider",
+        "property": "conversion.provider",
+        "propertyType": "msg",
+        "rules": [
+            {"t": "eq", "v": "elevenlabs", "vt": "str"},
+            {"t": "eq", "v": "google", "vt": "str"},
+            {"t": "eq", "v": "polly", "vt": "str"}
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 660, "y": 520,
+        "wires": [["n-el-prepare"], ["n-gtts-prepare"], ["n-polly-prepare"]]
+    },
+
+    {
+        "id": "n-el-prepare",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "ElevenLabs: Build Request",
+        "func": "const apiKey = global.get('ELEVENLABS_API_KEY');\n\nconst voiceMap = {\n    'Roger': 'CwhRBWXzGAHq8TQ4Fs17',\n    'Sarah': 'EXAVITQu4vr4xnSDxMaL',\n    'Laura': 'FGY2WhTYpPnrIDTdsKH5',\n    'Charlie': 'IKne3meq5aSn9XLyUdCD',\n    'George': 'JBFqnCBsd6RMkjVDRZzb',\n    'Callum': 'N2lVS1w4EtoT3dr4eOWO',\n    'River': 'SAz9YHcvj6GT2YYXdXww',\n    'Harry': 'SOYHLrjzK2X1ezoPC6cr',\n    'Liam': 'TX3LPaxmHKxFdv7VOQHJ'\n};\n\nconst voiceId = voiceMap[msg.conversion.voice] || voiceMap['Roger'];\n\nmsg.url = 'https://api.elevenlabs.io/v1/text-to-speech/' + voiceId;\nmsg.method = 'POST';\nmsg.headers = {\n    'Accept': 'audio/mpeg',\n    'Content-Type': 'application/json',\n    'xi-api-key': apiKey\n};\nmsg.payload = {\n    text: msg.conversion.text,\n    model_id: 'eleven_monolingual_v1',\n    voice_settings: {\n        stability: msg.conversion.stability,\n        similarity_boost: msg.conversion.similarity_boost\n    }\n};\n\nreturn msg;",
+        "outputs": 1,
+        "x": 940, "y": 480,
+        "wires": [["n-el-request"]]
+    },
+    {
+        "id": "n-el-request",
+        "type": "http request",
+        "z": "voiceflow-main",
+        "name": "Call ElevenLabs",
+        "method": "use",
+        "ret": "bin",
+        "paytoqs": "ignore",
+        "url": "",
+        "persist": false,
+        "x": 1180, "y": 480,
+        "wires": [["n-save-audio"]]
+    },
+
+    {
+        "id": "n-gtts-prepare",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Google TTS: Build Request",
+        "func": "const apiKey = global.get('GOOGLE_TTS_API_KEY');\n\nmsg.url = 'https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey;\nmsg.method = 'POST';\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    input: { text: msg.conversion.text },\n    voice: {\n        languageCode: 'en-US',\n        name: 'en-US-Neural2-D',\n        ssmlGender: 'MALE'\n    },\n    audioConfig: { audioEncoding: 'MP3' }\n};\n\nreturn msg;",
+        "outputs": 1,
+        "x": 940, "y": 520,
+        "wires": [["n-gtts-request"]]
+    },
+    {
+        "id": "n-gtts-request",
+        "type": "http request",
+        "z": "voiceflow-main",
+        "name": "Call Google TTS",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "persist": false,
+        "x": 1180, "y": 520,
+        "wires": [["n-save-audio"]]
+    },
+
+    {
+        "id": "n-polly-prepare",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Amazon Polly: Build Request",
+        "func": "// Note: For production, use the AWS SDK node or proper Polly signing.\n// This is a placeholder showing the request structure.\nconst region = global.get('AWS_REGION') || 'us-east-1';\n\nmsg.url = 'https://polly.' + region + '.amazonaws.com/v1/speech';\nmsg.method = 'POST';\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    OutputFormat: 'mp3',\n    Text: msg.conversion.text,\n    VoiceId: 'Matthew',\n    Engine: 'neural'\n};\n\nreturn msg;",
+        "outputs": 1,
+        "x": 940, "y": 560,
+        "wires": [["n-polly-request"]]
+    },
+    {
+        "id": "n-polly-request",
+        "type": "http request",
+        "z": "voiceflow-main",
+        "name": "Call Amazon Polly",
+        "method": "use",
+        "ret": "bin",
+        "paytoqs": "ignore",
+        "url": "",
+        "persist": false,
+        "x": 1180, "y": 560,
+        "wires": [["n-save-audio"]]
+    },
+
+    {
+        "id": "n-save-audio",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Save Audio & Update",
+        "func": "const fs = require('fs');\nconst path = require('path');\n\nconst audioDir = '/data/audio-output';\ntry { fs.mkdirSync(audioDir, { recursive: true }); } catch(e) {}\n\nconst filename = msg.conversion.id + '.mp3';\nconst filepath = path.join(audioDir, filename);\n\ntry {\n    let audioData;\n    if (msg.conversion.provider === 'google' && msg.payload && msg.payload.audioContent) {\n        audioData = Buffer.from(msg.payload.audioContent, 'base64');\n    } else if (Buffer.isBuffer(msg.payload)) {\n        audioData = msg.payload;\n    } else {\n        throw new Error('No audio data received from provider');\n    }\n\n    fs.writeFileSync(filepath, audioData);\n    const fstats = fs.statSync(filepath);\n    const durationEstimate = Math.ceil(msg.conversion.word_count / 2.5);\n\n    let conversions = flow.get('conversions') || [];\n    const idx = conversions.findIndex(c => c.id === msg.conversion.id);\n    if (idx >= 0) {\n        conversions[idx].status = 'completed';\n        conversions[idx].completed_at = new Date().toISOString();\n        conversions[idx].file_path = filepath;\n        conversions[idx].file_url = '/audio/' + filename;\n        conversions[idx].file_size = fstats.size;\n        conversions[idx].duration_seconds = durationEstimate;\n        flow.set('conversions', conversions);\n    }\n\n    let stats = flow.get('stats') || { total: 0, successful: 0, failed: 0, minutes_used: 0 };\n    stats.successful += 1;\n    stats.minutes_used += durationEstimate / 60;\n    flow.set('stats', stats);\n\n    msg.payload = {\n        id: msg.conversion.id,\n        status: 'completed',\n        file_url: '/audio/' + filename,\n        duration_seconds: durationEstimate,\n        file_size: fstats.size\n    };\n    return [msg, null];\n} catch (err) {\n    let conversions = flow.get('conversions') || [];\n    const idx = conversions.findIndex(c => c.id === msg.conversion.id);\n    if (idx >= 0) {\n        conversions[idx].status = 'failed';\n        conversions[idx].error = err.message;\n        flow.set('conversions', conversions);\n    }\n\n    let stats = flow.get('stats') || { total: 0, successful: 0, failed: 0, minutes_used: 0 };\n    stats.failed += 1;\n    flow.set('stats', stats);\n\n    msg.payload = { id: msg.conversion.id, status: 'failed', error: err.message };\n    return [null, msg];\n}",
+        "outputs": 2,
+        "x": 1420, "y": 520,
+        "wires": [["n-webhook-check"], ["n-webhook-check"]]
+    },
+
+    {
+        "id": "n-webhook-check",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Send Webhook?",
+        "func": "if (msg.conversion && msg.conversion.callback_url) {\n    msg.url = msg.conversion.callback_url;\n    msg.method = 'POST';\n    msg.headers = { 'Content-Type': 'application/json' };\n    return msg;\n}\nreturn null;",
+        "outputs": 1,
+        "x": 1640, "y": 520,
+        "wires": [["n-webhook-send"]]
+    },
+    {
+        "id": "n-webhook-send",
+        "type": "http request",
+        "z": "voiceflow-main",
+        "name": "POST Webhook",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "persist": false,
+        "x": 1840, "y": 520,
+        "wires": [[]]
+    },
+
+    {
+        "id": "n-comment-audio",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== AUDIO FILE SERVING ===",
+        "x": 100, "y": 620, "wires": []
+    },
+
+    {
+        "id": "n-audio-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /audio/:filename",
+        "url": "/audio/:filename",
+        "method": "get",
+        "x": 160, "y": 680,
+        "wires": [["n-audio-read"]]
+    },
+    {
+        "id": "n-audio-read",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Read & Serve Audio",
+        "func": "const fs = require('fs');\nconst path = require('path');\n\nconst filename = msg.req.params.filename;\nconst filepath = path.join('/data/audio-output', filename);\n\nif (fs.existsSync(filepath)) {\n    msg.payload = fs.readFileSync(filepath);\n    msg.headers = {\n        'Content-Type': 'audio/mpeg',\n        'Content-Disposition': 'inline; filename=\"' + filename + '\"',\n        'Cache-Control': 'public, max-age=86400'\n    };\n    msg.statusCode = 200;\n} else {\n    msg.payload = { error: 'Audio file not found' };\n    msg.headers = { 'Content-Type': 'application/json' };\n    msg.statusCode = 404;\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 420, "y": 680,
+        "wires": [["n-audio-resp"]]
+    },
+    {
+        "id": "n-audio-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "Audio Response",
+        "x": 640, "y": 680,
+        "wires": []
+    },
+
+    {
+        "id": "n-comment-data-api",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== DATA API (Frontend) ===",
+        "x": 100, "y": 760, "wires": []
+    },
+
+    {
+        "id": "n-stats-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /api/v1/stats",
+        "url": "/api/v1/stats",
+        "method": "get",
+        "x": 140, "y": 820,
+        "wires": [["n-stats-func"]]
+    },
+    {
+        "id": "n-stats-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Get Dashboard Stats",
+        "func": "const stats = flow.get('stats') || { total: 0, successful: 0, failed: 0, minutes_used: 0 };\nconst conversions = flow.get('conversions') || [];\nconst quota = 60;\n\nconst successRate = stats.total > 0 ? Math.round((stats.successful / stats.total) * 100) : 0;\n\nmsg.payload = {\n    conversions_this_month: stats.total,\n    minutes_used: Math.round(stats.minutes_used * 10) / 10,\n    minutes_quota: quota,\n    success_rate: successRate,\n    quota_usage: Math.round((stats.minutes_used / quota) * 100),\n    recent_conversions: conversions.slice(0, 5)\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 400, "y": 820,
+        "wires": [["n-stats-resp"]]
+    },
+    {
+        "id": "n-stats-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 620, "y": 820,
+        "wires": []
+    },
+
+    {
+        "id": "n-list-conv-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /api/v1/conversions",
+        "url": "/api/v1/conversions",
+        "method": "get",
+        "x": 160, "y": 880,
+        "wires": [["n-list-conv-func"]]
+    },
+    {
+        "id": "n-list-conv-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "List Conversions",
+        "func": "const conversions = flow.get('conversions') || [];\nconst q = msg.req.query;\n\nlet filtered = conversions;\n\nif (q.status && q.status !== 'all') {\n    filtered = filtered.filter(c => c.status === q.status);\n}\nif (q.search) {\n    const s = q.search.toLowerCase();\n    filtered = filtered.filter(c =>\n        (c.text && c.text.toLowerCase().includes(s)) ||\n        (c.voice && c.voice.toLowerCase().includes(s)) ||\n        (c.id && c.id.toLowerCase().includes(s))\n    );\n}\n\nconst page = parseInt(q.page) || 1;\nconst limit = parseInt(q.limit) || 20;\nconst start = (page - 1) * limit;\n\nmsg.payload = {\n    conversions: filtered.slice(start, start + limit),\n    total: filtered.length,\n    page: page,\n    pages: Math.ceil(filtered.length / limit)\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 420, "y": 880,
+        "wires": [["n-list-conv-resp"]]
+    },
+    {
+        "id": "n-list-conv-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 620, "y": 880,
+        "wires": []
+    },
+
+    {
+        "id": "n-get-conv-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /api/v1/conversions/:id",
+        "url": "/api/v1/conversions/:id",
+        "method": "get",
+        "x": 180, "y": 940,
+        "wires": [["n-get-conv-func"]]
+    },
+    {
+        "id": "n-get-conv-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Get Single Conversion",
+        "func": "const conversions = flow.get('conversions') || [];\nconst conv = conversions.find(c => c.id === msg.req.params.id);\n\nif (conv) {\n    msg.payload = conv;\n    msg.statusCode = 200;\n} else {\n    msg.payload = { error: 'Conversion not found' };\n    msg.statusCode = 404;\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 460, "y": 940,
+        "wires": [["n-get-conv-resp"]]
+    },
+    {
+        "id": "n-get-conv-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "",
+        "x": 680, "y": 940,
+        "wires": []
+    },
+
+    {
+        "id": "n-voices-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /api/v1/voices",
+        "url": "/api/v1/voices",
+        "method": "get",
+        "x": 140, "y": 1020,
+        "wires": [["n-voices-func"]]
+    },
+    {
+        "id": "n-voices-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Get Voice Library",
+        "func": "const voices = [\n    { id: 'Roger', name: 'Roger', description: 'Laid-Back, Casual, Resonant', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Sarah', name: 'Sarah', description: 'Mature, Reassuring, Confident', gender: 'female', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Laura', name: 'Laura', description: 'Enthusiast, Quirky Attitude', gender: 'female', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Charlie', name: 'Charlie', description: 'Deep, Confident, Energetic', gender: 'male', language: 'en-US', accent: 'australian', provider: 'ElevenLabs' },\n    { id: 'George', name: 'George', description: 'Warm, Captivating Storyteller', gender: 'male', language: 'en-US', accent: 'british', provider: 'ElevenLabs' },\n    { id: 'Callum', name: 'Callum', description: 'Husky Trickster', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'River', name: 'River', description: 'Relaxed, Neutral, Informative', gender: 'neutral', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Harry', name: 'Harry', description: 'Fierce Warrior', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Liam', name: 'Liam', description: 'Energetic, Social Media Creator', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' }\n];\n\nconst q = msg.req.query;\nlet filtered = voices;\n\nif (q.provider && q.provider !== 'all') {\n    filtered = filtered.filter(v => v.provider.toLowerCase() === q.provider.toLowerCase());\n}\nif (q.gender && q.gender !== 'all') {\n    filtered = filtered.filter(v => v.gender === q.gender);\n}\nif (q.search) {\n    const s = q.search.toLowerCase();\n    filtered = filtered.filter(v => v.name.toLowerCase().includes(s) || v.description.toLowerCase().includes(s));\n}\n\nmsg.payload = { voices: filtered };\nreturn msg;",
+        "outputs": 1,
+        "x": 400, "y": 1020,
+        "wires": [["n-voices-resp"]]
+    },
+    {
+        "id": "n-voices-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 620, "y": 1020,
+        "wires": []
+    },
+
+    {
+        "id": "n-comment-settings",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== SETTINGS ===",
+        "x": 100, "y": 1100, "wires": []
+    },
+
+    {
+        "id": "n-settings-get-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /api/v1/settings",
+        "url": "/api/v1/settings",
+        "method": "get",
+        "x": 150, "y": 1160,
+        "wires": [["n-settings-get-func"]]
+    },
+    {
+        "id": "n-settings-get-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Load Settings",
+        "func": "const defaults = {\n    organization_name: 'Mediacorp',\n    url_slug: 'my-newsroom',\n    default_provider: 'elevenlabs',\n    fallback_provider: '',\n    webhook_url: '',\n    webhooks_enabled: false\n};\nconst settings = flow.get('settings') || defaults;\nmsg.payload = settings;\nreturn msg;",
+        "outputs": 1,
+        "x": 400, "y": 1160,
+        "wires": [["n-settings-get-resp"]]
+    },
+    {
+        "id": "n-settings-get-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 620, "y": 1160,
+        "wires": []
+    },
+
+    {
+        "id": "n-settings-put-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "PUT /api/v1/settings",
+        "url": "/api/v1/settings",
+        "method": "put",
+        "x": 150, "y": 1220,
+        "wires": [["n-settings-put-func"]]
+    },
+    {
+        "id": "n-settings-put-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Save Settings",
+        "func": "const current = flow.get('settings') || {};\nconst updated = Object.assign({}, current, msg.payload);\nflow.set('settings', updated);\nmsg.payload = { success: true, settings: updated };\nreturn msg;",
+        "outputs": 1,
+        "x": 400, "y": 1220,
+        "wires": [["n-settings-put-resp"]]
+    },
+    {
+        "id": "n-settings-put-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 620, "y": 1220,
+        "wires": []
+    },
+
+    {
+        "id": "n-comment-octopus",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== OCTOPUS NEWSROOM INTEGRATION ===",
+        "x": 100, "y": 1300, "wires": []
+    },
+
+    {
+        "id": "n-oct-fetch-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "POST /api/v1/octopus/fetch",
+        "url": "/api/v1/octopus/fetch",
+        "method": "post",
+        "x": 170, "y": 1360,
+        "wires": [["n-oct-fetch-prep"]]
+    },
+    {
+        "id": "n-oct-fetch-prep",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Prepare Octopus Fetch",
+        "func": "const octUrl = global.get('OCTOPUS_API_URL');\nconst octKey = global.get('OCTOPUS_API_KEY');\n\nif (!octUrl || !octKey) {\n    msg.statusCode = 500;\n    msg.payload = { error: 'Octopus API not configured. Set OCTOPUS_API_URL and OCTOPUS_API_KEY environment variables.' };\n    return [null, msg];\n}\n\nconst body = msg.payload;\nconst storyId = body.story_id || '';\n\n// Build the Octopus request\n// Adjust this URL pattern to match your Octopus REST API\nmsg.url = octUrl + '/stories/' + storyId;\nif (body.endpoint) {\n    msg.url = octUrl + '/' + body.endpoint;\n}\n\nmsg.method = 'GET';\nmsg.headers = {\n    'Authorization': 'Bearer ' + octKey,\n    'Accept': 'application/json'\n};\n\nreturn [msg, null];",
+        "outputs": 2,
+        "x": 440, "y": 1360,
+        "wires": [["n-oct-fetch-req"], ["n-oct-error-resp"]]
+    },
+    {
+        "id": "n-oct-fetch-req",
+        "type": "http request",
+        "z": "voiceflow-main",
+        "name": "Call Octopus API",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "persist": false,
+        "x": 700, "y": 1340,
+        "wires": [["n-oct-parse"]]
+    },
+    {
+        "id": "n-oct-parse",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Parse Octopus Response",
+        "func": "// Adapt this to your Octopus NRCS API response format\nconst data = msg.payload;\n\nlet result = {\n    title: data.title || data.headline || data.slug || '',\n    text: data.body || data.content || data.text || data.script || '',\n    author: data.author || data.byline || data.creator || '',\n    category: data.category || data.section || data.show || '',\n    story_id: data.id || data.storyId || data.story_id || '',\n    published_at: data.published_at || data.pubDate || data.modified || '',\n    rundown: data.rundown || '',\n    duration: data.duration || ''\n};\n\n// Strip HTML tags if present\nif (result.text) {\n    result.text = result.text.replace(/<[^>]*>/g, '').trim();\n}\n\n// Strip ENPS/iNEWS control codes if present\nif (result.text) {\n    result.text = result.text.replace(/\\{[^}]*\\}/g, '').trim();\n}\n\nmsg.payload = result;\nreturn msg;",
+        "outputs": 1,
+        "x": 920, "y": 1340,
+        "wires": [["n-oct-fetch-resp"]]
+    },
+    {
+        "id": "n-oct-fetch-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 1120, "y": 1340,
+        "wires": []
+    },
+    {
+        "id": "n-oct-error-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "500 Error",
+        "statusCode": "500",
+        "x": 700, "y": 1380,
+        "wires": []
+    },
+
+    {
+        "id": "n-oct-list-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /api/v1/octopus/stories",
+        "url": "/api/v1/octopus/stories",
+        "method": "get",
+        "x": 170, "y": 1440,
+        "wires": [["n-oct-list-prep"]]
+    },
+    {
+        "id": "n-oct-list-prep",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Prepare Story List",
+        "func": "const octUrl = global.get('OCTOPUS_API_URL');\nconst octKey = global.get('OCTOPUS_API_KEY');\n\nif (!octUrl || !octKey) {\n    msg.statusCode = 500;\n    msg.payload = { error: 'Octopus API not configured' };\n    return [null, msg];\n}\n\n// Adjust endpoint to match your Octopus API\nmsg.url = octUrl + '/stories';\nif (msg.req.query.search) {\n    msg.url += '?search=' + encodeURIComponent(msg.req.query.search);\n}\nif (msg.req.query.rundown) {\n    msg.url += (msg.url.includes('?') ? '&' : '?') + 'rundown=' + encodeURIComponent(msg.req.query.rundown);\n}\n\nmsg.method = 'GET';\nmsg.headers = {\n    'Authorization': 'Bearer ' + octKey,\n    'Accept': 'application/json'\n};\n\nreturn [msg, null];",
+        "outputs": 2,
+        "x": 440, "y": 1440,
+        "wires": [["n-oct-list-req"], ["n-oct-list-error"]]
+    },
+    {
+        "id": "n-oct-list-req",
+        "type": "http request",
+        "z": "voiceflow-main",
+        "name": "List Stories",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "persist": false,
+        "x": 700, "y": 1420,
+        "wires": [["n-oct-list-parse"]]
+    },
+    {
+        "id": "n-oct-list-parse",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Format Story List",
+        "func": "// Adapt to your Octopus response format\nconst data = msg.payload;\n\nlet stories = [];\nif (Array.isArray(data)) {\n    stories = data;\n} else if (data.stories) {\n    stories = data.stories;\n} else if (data.items) {\n    stories = data.items;\n} else if (data.results) {\n    stories = data.results;\n}\n\nmsg.payload = {\n    stories: stories.map(s => ({\n        id: s.id || s.storyId || '',\n        title: s.title || s.headline || s.slug || 'Untitled',\n        text: (s.body || s.content || s.text || '').substring(0, 200),\n        category: s.category || s.section || '',\n        author: s.author || '',\n        modified: s.modified || s.updated_at || ''\n    }))\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 920, "y": 1420,
+        "wires": [["n-oct-list-resp"]]
+    },
+    {
+        "id": "n-oct-list-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 1120, "y": 1420,
+        "wires": []
+    },
+    {
+        "id": "n-oct-list-error",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "500",
+        "statusCode": "500",
+        "x": 700, "y": 1460,
+        "wires": []
+    },
+
+    {
+        "id": "n-comment-apikey",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== API KEY MANAGEMENT ===",
+        "x": 100, "y": 1540, "wires": []
+    },
+
+    {
+        "id": "n-apikey-get-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "GET /api/v1/apikey",
+        "url": "/api/v1/apikey",
+        "method": "get",
+        "x": 150, "y": 1600,
+        "wires": [["n-apikey-get-func"]]
+    },
+    {
+        "id": "n-apikey-get-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Get Masked Key",
+        "func": "const key = flow.get('api_key') || '';\nif (key) {\n    msg.payload = {\n        api_key: key.substr(0, 8) + '\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022' + key.substr(-4),\n        exists: true\n    };\n} else {\n    msg.payload = { api_key: 'No key generated yet', exists: false };\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 400, "y": 1600,
+        "wires": [["n-apikey-get-resp"]]
+    },
+    {
+        "id": "n-apikey-get-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 620, "y": 1600,
+        "wires": []
+    },
+
+    {
+        "id": "n-apikey-regen-in",
+        "type": "http in",
+        "z": "voiceflow-main",
+        "name": "POST /api/v1/apikey/regenerate",
+        "url": "/api/v1/apikey/regenerate",
+        "method": "post",
+        "x": 190, "y": 1660,
+        "wires": [["n-apikey-regen-func"]]
+    },
+    {
+        "id": "n-apikey-regen-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Regenerate API Key",
+        "func": "const crypto = require('crypto');\nconst newKey = crypto.randomBytes(24).toString('hex');\nflow.set('api_key', newKey);\n\nmsg.payload = {\n    api_key: newKey.substr(0, 8) + '\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022' + newKey.substr(-4),\n    full_key: newKey,\n    message: 'API key regenerated successfully. Store the full key securely.'\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 460, "y": 1660,
+        "wires": [["n-apikey-regen-resp"]]
+    },
+    {
+        "id": "n-apikey-regen-resp",
+        "type": "http response",
+        "z": "voiceflow-main",
+        "name": "200",
+        "statusCode": "200",
+        "x": 680, "y": 1660,
+        "wires": []
+    },
+
+    {
+        "id": "n-comment-init",
+        "type": "comment",
+        "z": "voiceflow-main",
+        "name": "=== STARTUP INITIALIZATION ===",
+        "x": 100, "y": 1740, "wires": []
+    },
+
+    {
+        "id": "n-init-inject",
+        "type": "inject",
+        "z": "voiceflow-main",
+        "name": "On Deploy / Start",
+        "props": [{"p": "payload"}],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "x": 160, "y": 1800,
+        "wires": [["n-init-func"]]
+    },
+    {
+        "id": "n-init-func",
+        "type": "function",
+        "z": "voiceflow-main",
+        "name": "Initialize Defaults",
+        "func": "// Initialize flow context with defaults if not set\nif (!flow.get('conversions')) {\n    flow.set('conversions', []);\n}\nif (!flow.get('stats')) {\n    flow.set('stats', { total: 0, successful: 0, failed: 0, minutes_used: 0 });\n}\nif (!flow.get('settings')) {\n    flow.set('settings', {\n        organization_name: 'Mediacorp',\n        url_slug: 'my-newsroom',\n        default_provider: 'elevenlabs',\n        fallback_provider: '',\n        webhook_url: '',\n        webhooks_enabled: false\n    });\n}\nif (!flow.get('api_key')) {\n    const crypto = require('crypto');\n    flow.set('api_key', crypto.randomBytes(24).toString('hex'));\n}\n\nnode.log('VoiceFlow Pro initialized successfully');\nreturn msg;",
+        "outputs": 1,
+        "x": 420, "y": 1800,
+        "wires": [[]]
+    }
+]

@@ -10,6 +10,9 @@ module.exports = {
 
     userDir: '/data',
 
+    // Allow require() in function nodes (fs, path, crypto)
+    functionExternalModules: true,
+
     functionGlobalContext: {
         ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY || '',
         GOOGLE_TTS_API_KEY: process.env.GOOGLE_TTS_API_KEY || '',

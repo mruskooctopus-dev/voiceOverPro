@@ -2,11 +2,8 @@ FROM nodered/node-red:3.1
 
 # Install additional Node-RED nodes
 RUN npm install --no-optional \
-    node-red-contrib-sqlite \
-    node-red-node-ui-table \
-    node-red-contrib-fs \
-    node-red-contrib-mime \
-    uuid
+    node-red-node-sqlite \
+    node-red-contrib-fs
 
 # Copy configuration
 COPY settings.js /data/settings.js

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceFlow Pro</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <span class="brand-name">VoiceFlow Pro</span>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Main</div>
+            <ul class="sidebar-nav">
+                <li><a href="#" data-page="dashboard" class="active" onclick="navigateTo('dashboard')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    Dashboard
+                </a></li>
+                <li><a href="#" data-page="convert" onclick="navigateTo('convert')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Convert Text
+                </a></li>
+                <li><a href="#" data-page="history" onclick="navigateTo('history')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    History
+                </a></li>
+                <li><a href="#" data-page="voices" onclick="navigateTo('voices')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    Voice Library
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Configuration</div>
+            <ul class="sidebar-nav">
+                <li><a href="#" data-page="settings" onclick="navigateTo('settings')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    Settings
+                </a></li>
+                <li><a href="#" data-page="api" onclick="navigateTo('api')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    API Integration
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="sidebar-user">
+            <div class="user-avatar">M</div>
+            <div class="user-info">
+                <div class="user-name">Miro</div>
+                <div class="user-email">mrusko.octopus@...</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+        <!-- ==================== DASHBOARD ==================== -->
+        <div id="page-dashboard" class="page active">
+            <div class="header-actions">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Overview of your TTS conversion activity</p>
+                </div>
+                <button class="btn btn-primary" onclick="navigateTo('convert')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    New Conversion
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <span>Conversions This Month</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/></svg>
+                    </div>
+                    <div class="stat-value" id="stat-conversions">0</div>
+                    <div class="stat-label">Total conversions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <span>Minutes Used</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="stat-value"><span id="stat-minutes">0</span>m</div>
+                    <div class="stat-label">of <span id="stat-quota">60</span>m quota</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <span>Success Rate</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 12l-4 4-4-4"/></svg>
+                    </div>
+                    <div class="stat-value"><span id="stat-success">0</span>%</div>
+                    <div class="stat-label">Successful conversions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <span>Quota Usage</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div class="stat-value"><span id="stat-quota-pct">0</span>%</div>
+                    <div class="quota-bar"><div class="quota-bar-fill" id="quota-bar-fill" style="width: 0%"></div></div>
+                    <div class="stat-label"><span id="stat-quota-used">0</span> / <span id="stat-quota-total">60</span> minutes</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Recent Conversions</div>
+                        <div class="card-subtitle">Your latest text-to-speech conversions</div>
+                    </div>
+                    <a href="#" class="btn btn-secondary btn-sm" onclick="navigateTo('history')">View All →</a>
+                </div>
+                <div id="recent-conversions">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        <h3>No conversions yet</h3>
+                        <p>Start by converting your first text to audio.</p>
+                        <button class="btn btn-primary" onclick="navigateTo('convert')">Create Conversion</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CONVERT TEXT ==================== -->
+        <div id="page-convert" class="page">
+            <div class="page-header">
+                <h1>Convert Text</h1>
+                <p>Convert text to speech using AI voices</p>
+            </div>
+
+            <div class="convert-layout">
+                <div>
+                    <div class="card">
+                        <div class="text-source-tabs">
+                            <button class="text-source-tab active" onclick="switchTextSource('manual')">Manual Input</button>
+                            <button class="text-source-tab" onclick="switchTextSource('octopus')">From Octopus</button>
+                        </div>
+
+                        <div id="source-manual">
+                            <div class="form-group">
+                                <textarea id="convert-text" placeholder="Enter or paste your text here..." rows="12"></textarea>
+                                <div class="text-counter">
+                                    <span><span id="char-count">0</span> characters</span>
+                                    <span><span id="word-count">0</span> words</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="source-octopus" style="display:none;">
+                            <div class="form-group">
+                                <div class="search-bar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    <input type="text" id="octopus-search" placeholder="Search stories in Octopus..." oninput="searchOctopusStories()">
+                                </div>
+                                <div id="octopus-stories" class="story-list">
+                                    <div class="empty-state">
+                                        <p>Search for stories or enter a story ID to fetch text from Octopus</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Or enter Story ID directly</label>
+                                <div style="display:flex;gap:8px;">
+                                    <input type="text" id="octopus-story-id" placeholder="e.g., 12345">
+                                    <button class="btn btn-secondary" onclick="fetchOctopusStory()">Fetch</button>
+                                </div>
+                            </div>
+                            <div class="form-group" id="octopus-preview" style="display:none;">
+                                <label class="form-label">Fetched Text</label>
+                                <textarea id="octopus-text" rows="8" readonly></textarea>
+                                <button class="btn btn-sm btn-secondary" style="margin-top:8px;" onclick="useOctopusText()">Use This Text</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-panel">
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:16px;">Voice Settings</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Voice</label>
+                            <select id="convert-voice">
+                                <option value="Roger">Roger - Laid-Back, Casual</option>
+                                <option value="Sarah">Sarah - Mature, Confident</option>
+                                <option value="Laura">Laura - Enthusiast, Quirky</option>
+                                <option value="Charlie">Charlie - Deep, Energetic</option>
+                                <option value="George">George - Warm Storyteller</option>
+                                <option value="Callum">Callum - Husky Trickster</option>
+                                <option value="River">River - Relaxed, Neutral</option>
+                                <option value="Harry">Harry - Fierce Warrior</option>
+                                <option value="Liam">Liam - Energetic Creator</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Provider</label>
+                            <select id="convert-provider">
+                                <option value="elevenlabs">ElevenLabs</option>
+                                <option value="google">Google TTS</option>
+                                <option value="polly">Amazon Polly</option>
+                            </select>
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <span class="slider-label">Stability</span>
+                                <span class="slider-value" id="stability-val">0.50</span>
+                            </div>
+                            <input type="range" id="convert-stability" min="0" max="1" step="0.05" value="0.5" oninput="document.getElementById('stability-val').textContent = parseFloat(this.value).toFixed(2)">
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <span class="slider-label">Similarity Boost</span>
+                                <span class="slider-value" id="similarity-val">0.75</span>
+                            </div>
+                            <input type="range" id="convert-similarity" min="0" max="1" step="0.05" value="0.75" oninput="document.getElementById('similarity-val').textContent = parseFloat(this.value).toFixed(2)">
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:16px;">Metadata</div>
+                        <div class="form-group">
+                            <label class="form-label">Article ID</label>
+                            <input type="text" id="convert-article-id" placeholder="Optional">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select id="convert-category">
+                                <option value="">Select category</option>
+                                <option value="news">News</option>
+                                <option value="sports">Sports</option>
+                                <option value="weather">Weather</option>
+                                <option value="editorial">Editorial</option>
+                                <option value="podcast">Podcast</option>
+                                <option value="bulletin">Bulletin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="startConversion()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Convert to Speech
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== HISTORY ==================== -->
+        <div id="page-history" class="page">
+            <div class="page-header">
+                <h1>Conversion History</h1>
+                <p>View and manage all your text-to-speech conversions</p>
+            </div>
+
+            <div class="filter-bar">
+                <div class="search-bar" style="flex:1;margin-bottom:0;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="history-search" placeholder="Search conversions..." oninput="loadHistory()">
+                </div>
+                <select id="history-status" onchange="loadHistory()">
+                    <option value="all">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="processing">Processing</option>
+                    <option value="queued">Queued</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <div id="history-content">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <h3>No conversions found</h3>
+                        <p>Start by creating your first conversion</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VOICE LIBRARY ==================== -->
+        <div id="page-voices" class="page">
+            <div class="page-header">
+                <h1>Voice Library</h1>
+                <p>Browse and preview available voices from your connected providers</p>
+            </div>
+
+            <div class="filter-bar">
+                <div class="search-bar" style="flex:1;margin-bottom:0;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="voice-search" placeholder="Search voices..." oninput="loadVoices()">
+                </div>
+                <select id="voice-provider-filter" onchange="loadVoices()">
+                    <option value="all">All Providers</option>
+                    <option value="elevenlabs">ElevenLabs</option>
+                    <option value="google">Google TTS</option>
+                    <option value="polly">Amazon Polly</option>
+                </select>
+                <select id="voice-gender-filter" onchange="loadVoices()">
+                    <option value="all">All</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="neutral">Neutral</option>
+                </select>
+            </div>
+
+            <div id="voices-grid" class="voice-grid"></div>
+        </div>
+
+        <!-- ==================== SETTINGS ==================== -->
+        <div id="page-settings" class="page">
+            <div class="page-header">
+                <h1>Settings</h1>
+                <p>Manage your organization and TTS provider configurations</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchSettingsTab('organization')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                    Organization
+                </button>
+                <button class="tab" onclick="switchSettingsTab('providers')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/></svg>
+                    TTS Providers
+                </button>
+                <button class="tab" onclick="switchSettingsTab('webhooks')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/></svg>
+                    Webhooks
+                </button>
+            </div>
+
+            <div id="settings-organization" class="card">
+                <div class="card-title" style="margin-bottom:4px;">Organization Settings</div>
+                <div class="card-subtitle" style="margin-bottom:24px;">Configure your organization details and default preferences</div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Organization Name</label>
+                        <input type="text" id="settings-org-name" value="Mediacorp">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">URL Slug</label>
+                        <input type="text" id="settings-url-slug" value="my-newsroom">
+                        <div class="form-hint">Used in API endpoints and URLs</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Default TTS Provider</label>
+                        <select id="settings-default-provider">
+                            <option value="elevenlabs">ElevenLabs</option>
+                            <option value="google">Google TTS</option>
+                            <option value="polly">Amazon Polly</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fallback Provider</label>
+                        <select id="settings-fallback-provider">
+                            <option value="">Select fallback</option>
+                            <option value="elevenlabs">ElevenLabs</option>
+                            <option value="google">Google TTS</option>
+                            <option value="polly">Amazon Polly</option>
+                        </select>
+                        <div class="form-hint">Used when primary provider fails</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size:15px;margin-bottom:16px;margin-top:8px;">Webhook Configuration</h3>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Webhook URL</label>
+                        <input type="url" id="settings-webhook-url" placeholder="https://your-server.com/webhook">
+                        <div class="form-hint">Receive conversion completion events</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Enable Webhooks</label>
+                        <div class="form-hint" style="margin-top:4px;">Send events to your webhook URL</div>
+                        <div class="toggle-wrapper" style="margin-top:8px;">
+                            <div class="toggle" id="settings-webhooks-toggle" onclick="this.classList.toggle('active')"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align:right;margin-top:16px;">
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+
+            <div id="settings-providers" class="card" style="display:none;">
+                <div class="card-title" style="margin-bottom:16px;">TTS Provider Configuration</div>
+                <p style="color:var(--text-secondary);margin-bottom:24px;">Provider API keys are configured via environment variables in your Docker setup for security. Update your .env file to change provider credentials.</p>
+                <div class="code-block">
+                    <div><span class="key">ELEVENLABS_API_KEY</span>=your-key-here</div>
+                    <div><span class="key">GOOGLE_TTS_API_KEY</span>=your-key-here</div>
+                    <div><span class="key">AWS_ACCESS_KEY_ID</span>=your-key-here</div>
+                    <div><span class="key">AWS_SECRET_ACCESS_KEY</span>=your-secret-here</div>
+                </div>
+            </div>
+
+            <div id="settings-webhooks" class="card" style="display:none;">
+                <div class="card-title" style="margin-bottom:16px;">Webhook Events</div>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">When enabled, VoiceFlow Pro will send POST requests to your webhook URL for the following events:</p>
+                <table class="conversion-table">
+                    <thead><tr><th>Event</th><th>Description</th><th>Payload</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>conversion.completed</code></td><td>TTS conversion finished successfully</td><td>Conversion object + audio URL</td></tr>
+                        <tr><td><code>conversion.failed</code></td><td>TTS conversion encountered an error</td><td>Conversion object + error details</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== API INTEGRATION ==================== -->
+        <div id="page-api" class="page">
+            <div class="page-header">
+                <h1>API Integration</h1>
+                <p>Integrate VoiceFlow Pro with your newsroom workflow</p>
+            </div>
+
+            <div class="card" style="margin-bottom:24px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    <h3>API Key</h3>
+                </div>
+                <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Use this key to authenticate API requests from Node-RED or other integrations</p>
+
+                <div class="api-key-display">
+                    <span class="api-key-value" id="api-key-display">Loading...</span>
+                    <div class="api-key-actions">
+                        <button onclick="toggleApiKeyVisibility()" title="Show/Hide">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                        <button onclick="copyApiKey()" title="Copy">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="regenerateApiKey()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                    Regenerate Key
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="tabs" style="margin-bottom:20px;">
+                    <button class="tab active" onclick="switchApiTab('endpoints')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        API Endpoints
+                    </button>
+                    <button class="tab" onclick="switchApiTab('nodered')">Node-RED</button>
+                    <button class="tab" onclick="switchApiTab('api-webhooks')">Webhooks</button>
+                </div>
+
+                <div id="api-endpoints">
+                    <div style="margin-bottom:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <span class="method-badge post">POST</span>
+                            <span class="endpoint-path">/api/v1/conversions</span>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Create a new text-to-speech conversion</p>
+
+                        <h4 style="font-size:14px;margin-bottom:12px;">Request Body</h4>
+                        <div class="code-block"><pre>{
+  "text": "Welcome to our daily news podcast. Today we cover...",
+  "voice": "professional_male",
+  "settings": {
+    "provider": "elevenlabs",
+    "stability": 0.5,
+    "similarity_boost": 0.75
+  },
+  "metadata": {
+    "article_id": "12345",
+    "category": "news"
+  },
+  "callback_url": "https://your-server.com/webhook"
+}</pre></div>
+                    </div>
+
+                    <div style="margin-bottom:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <span class="method-badge get">GET</span>
+                            <span class="endpoint-path">/api/v1/conversions</span>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:14px;">List all conversions with optional status and search filters</p>
+                    </div>
+
+                    <div style="margin-bottom:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <span class="method-badge get">GET</span>
+                            <span class="endpoint-path">/api/v1/conversions/:id</span>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:14px;">Get details of a specific conversion</p>
+                    </div>
+
+                    <div style="margin-bottom:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <span class="method-badge post">POST</span>
+                            <span class="endpoint-path">/api/v1/octopus/fetch</span>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:14px;">Fetch a story from Octopus newsroom system</p>
+                    </div>
+
+                    <div>
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <span class="method-badge get">GET</span>
+                            <span class="endpoint-path">/api/v1/voices</span>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:14px;">List available voices with optional filtering</p>
+                    </div>
+                </div>
+
+                <div id="api-nodered" style="display:none;">
+                    <h4 style="margin-bottom:12px;">Node-RED Integration</h4>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Access the Node-RED flow editor to customize your TTS workflows:</p>
+                    <a href="/admin" target="_blank" class="btn btn-primary">Open Node-RED Editor</a>
+                    <p style="color:var(--text-muted);font-size:13px;margin-top:12px;">The Node-RED editor allows you to visually modify the TTS processing flows, add custom logic, and integrate additional services.</p>
+                </div>
+
+                <div id="api-api-webhooks" style="display:none;">
+                    <h4 style="margin-bottom:12px;">Webhook Payload Example</h4>
+                    <div class="code-block"><pre>{
+  "event": "conversion.completed",
+  "data": {
+    "id": "abc123def",
+    "status": "completed",
+    "file_url": "/audio/abc123def.mp3",
+    "duration_seconds": 45,
+    "metadata": {
+      "article_id": "12345",
+      "category": "news"
+    }
+  },
+  "timestamp": "2026-04-01T12:00:00.000Z"
+}</pre></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

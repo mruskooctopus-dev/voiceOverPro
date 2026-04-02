@@ -9,7 +9,6 @@ services:
       - "1880:1880"
     volumes:
       - voiceflow-data:/data
-      - ./audio-output:/data/audio-output
     environment:
       - TZ=UTC
       - NODE_RED_CREDENTIAL_SECRET=${NODE_RED_CREDENTIAL_SECRET:-voiceflow-secret-change-me}

@@ -8,6 +8,7 @@ module.exports = {
     userDir: '/data',
     flowFile: 'flows.json',
     functionExternalModules: true,
+    contextStorage: { default: { module: 'localfilesystem' } },
     functionGlobalContext: {
         ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY || '',
         GOOGLE_TTS_API_KEY: process.env.GOOGLE_TTS_API_KEY || '',

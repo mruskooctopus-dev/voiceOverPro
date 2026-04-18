@@ -1,18 +1,13 @@
 module.exports = {
     uiPort: process.env.PORT || 1880,
     credentialSecret: process.env.NODE_RED_CREDENTIAL_SECRET || "voiceflow-secret",
-
     httpAdminRoot: '/admin',
     httpNodeRoot: '/',
-
     httpStatic: '/data/public',
     httpStaticAuth: false,
-
     userDir: '/data',
-
-    // Allow require() in function nodes (fs, path, crypto)
+    flowFile: 'flows.json',
     functionExternalModules: true,
-
     functionGlobalContext: {
         ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY || '',
         GOOGLE_TTS_API_KEY: process.env.GOOGLE_TTS_API_KEY || '',
@@ -22,23 +17,10 @@ module.exports = {
         OCTOPUS_API_URL: process.env.OCTOPUS_API_URL || '',
         OCTOPUS_API_KEY: process.env.OCTOPUS_API_KEY || '',
     },
-
-    logging: {
-        console: {
-            level: "info",
-            metrics: false,
-            audit: false
-        }
-    },
-
+    logging: { console: { level: "info", metrics: false, audit: false } },
     exportGlobalContextKeys: false,
-
     editorTheme: {
-        page: {
-            title: "VoiceFlow Pro - Admin"
-        },
-        header: {
-            title: "VoiceFlow Pro"
-        }
+        page: { title: "VoiceFlow Pro - Admin" },
+        header: { title: "VoiceFlow Pro" }
     }
 };

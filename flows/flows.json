@@ -461,7 +461,7 @@
         "type": "function",
         "z": "voiceflow-main",
         "name": "Get Voice Library",
-        "func": "const voices = [\n    { id: 'Roger', name: 'Roger', description: 'Laid-Back, Casual, Resonant', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Sarah', name: 'Sarah', description: 'Mature, Reassuring, Confident', gender: 'female', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Laura', name: 'Laura', description: 'Enthusiast, Quirky Attitude', gender: 'female', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Charlie', name: 'Charlie', description: 'Deep, Confident, Energetic', gender: 'male', language: 'en-US', accent: 'australian', provider: 'ElevenLabs' },\n    { id: 'George', name: 'George', description: 'Warm, Captivating Storyteller', gender: 'male', language: 'en-US', accent: 'british', provider: 'ElevenLabs' },\n    { id: 'Callum', name: 'Callum', description: 'Husky Trickster', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'River', name: 'River', description: 'Relaxed, Neutral, Informative', gender: 'neutral', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Harry', name: 'Harry', description: 'Fierce Warrior', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Liam', name: 'Liam', description: 'Energetic, Social Media Creator', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' }\n];\n\nconst q = msg.req.query;\nlet filtered = voices;\n\nif (q.provider && q.provider !== 'all') {\n    filtered = filtered.filter(v => v.provider.toLowerCase() === q.provider.toLowerCase());\n}\nif (q.gender && q.gender !== 'all') {\n    filtered = filtered.filter(v => v.gender === q.gender);\n}\nif (q.search) {\n    const s = q.search.toLowerCase();\n    filtered = filtered.filter(v => v.name.toLowerCase().includes(s) || v.description.toLowerCase().includes(s));\n}\n\nmsg.payload = { voices: filtered };\nreturn msg;",
+        "func": "const cached = global.get('voiceLibrary');\nif (cached && cached.length > 0) {\n    // apply filters to cached voices\n    let voices = cached;\n    const search = (msg.req.query.search || '').toLowerCase();\n    const providerFilter = msg.req.query.provider || '';\n    const genderFilter = msg.req.query.gender || '';\n    if (search) voices = voices.filter(v => v.name.toLowerCase().includes(search) || (v.description||'').toLowerCase().includes(search));\n    if (providerFilter && providerFilter !== 'all') voices = voices.filter(v => (v.provider||'').toLowerCase() === providerFilter.toLowerCase());\n    if (genderFilter && genderFilter !== 'all') voices = voices.filter(v => v.gender === genderFilter);\n    msg.payload = { voices, total: voices.length, provider: 'elevenlabs' };\n    msg.statusCode = 200;\n    return msg;\n}\n\nconst voices = [\n    { id: 'Roger', name: 'Roger', description: 'Laid-Back, Casual, Resonant', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Sarah', name: 'Sarah', description: 'Mature, Reassuring, Confident', gender: 'female', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Laura', name: 'Laura', description: 'Enthusiast, Quirky Attitude', gender: 'female', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Charlie', name: 'Charlie', description: 'Deep, Confident, Energetic', gender: 'male', language: 'en-US', accent: 'australian', provider: 'ElevenLabs' },\n    { id: 'George', name: 'George', description: 'Warm, Captivating Storyteller', gender: 'male', language: 'en-US', accent: 'british', provider: 'ElevenLabs' },\n    { id: 'Callum', name: 'Callum', description: 'Husky Trickster', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'River', name: 'River', description: 'Relaxed, Neutral, Informative', gender: 'neutral', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Harry', name: 'Harry', description: 'Fierce Warrior', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' },\n    { id: 'Liam', name: 'Liam', description: 'Energetic, Social Media Creator', gender: 'male', language: 'en-US', accent: 'american', provider: 'ElevenLabs' }\n];\n\nconst q = msg.req.query;\nlet filtered = voices;\n\nif (q.provider && q.provider !== 'all') {\n    filtered = filtered.filter(v => v.provider.toLowerCase() === q.provider.toLowerCase());\n}\nif (q.gender && q.gender !== 'all') {\n    filtered = filtered.filter(v => v.gender === q.gender);\n}\nif (q.search) {\n    const s = q.search.toLowerCase();\n    filtered = filtered.filter(v => v.name.toLowerCase().includes(s) || v.description.toLowerCase().includes(s));\n}\n\nmsg.payload = { voices: filtered };\nreturn msg;",
         "outputs": 1,
         "x": 400, "y": 1020,
         "wires": [["n-voices-resp"]]
@@ -774,5 +774,42 @@
         "outputs": 1,
         "x": 420, "y": 1800,
         "wires": [[]]
+    },
+
+    {
+        "id":"prov-http-get","type":"http in","z":"voiceflow-main","name":"GET /api/v1/settings/providers","method":"get","url":"/api/v1/settings/providers","swaggerDoc":"","x":160,"y":900,"wires":[["prov-get-fn"]]
+    },
+    {
+        "id":"prov-get-fn","type":"function","z":"voiceflow-main","name":"Get Provider Keys","func":"const keys = ['ELEVENLABS_API_KEY','GOOGLE_TTS_API_KEY','AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','OCTOPUS_API_URL','OCTOPUS_API_KEY'];\nconst result = {};\nkeys.forEach(k => {\n    const val = global.get(k) || '';\n    result[k] = val ? 'â¢â¢â¢â¢' + val.slice(-4) : '';\n    result[k + '_set'] = val.length > 0;\n});\nmsg.payload = { providers: result };\nmsg.statusCode = 200;\nreturn msg;","outputs":1,"noerr":0,"initialize":"","finalize":"","libs":[],"x":400,"y":900,"wires":[["prov-http-resp"]]
+    },
+    {
+        "id":"prov-http-resp","type":"http response","z":"voiceflow-main","name":"","statusCode":"","headers":{},"x":600,"y":900,"wires":[]
+    },
+    {
+        "id":"prov-http-post","type":"http in","z":"voiceflow-main","name":"POST /api/v1/settings/providers","method":"post","url":"/api/v1/settings/providers","swaggerDoc":"","x":160,"y":960,"wires":[["prov-save-fn"]]
+    },
+    {
+        "id":"prov-save-fn","type":"function","z":"voiceflow-main","name":"Save Provider Keys","func":"const allowed = ['ELEVENLABS_API_KEY','GOOGLE_TTS_API_KEY','AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','OCTOPUS_API_URL','OCTOPUS_API_KEY'];\nconst body = msg.payload || {};\nconst saved = [];\nallowed.forEach(k => {\n    if (body[k] !== undefined && body[k] !== null) {\n        const val = String(body[k]).trim();\n        if (val !== '' && !val.startsWith('â¢â¢â¢â¢')) {\n            global.set(k, val);\n            saved.push(k);\n        }\n    }\n});\nmsg.payload = { success: true, saved: saved, message: saved.length + ' key(s) updated' };\nmsg.statusCode = 200;\nreturn msg;","outputs":1,"noerr":0,"initialize":"","finalize":"","libs":[],"x":400,"y":960,"wires":[["prov-http-resp2"]]
+    },
+    {
+        "id":"prov-http-resp2","type":"http response","z":"voiceflow-main","name":"","statusCode":"","headers":{},"x":600,"y":960,"wires":[]
+    },
+    {
+        "id":"sync-http-post","type":"http in","z":"voiceflow-main","name":"POST /api/v1/voices/sync","method":"post","url":"/api/v1/voices/sync","swaggerDoc":"","x":160,"y":1020,"wires":[["sync-fetch-fn"]]
+    },
+    {
+        "id":"sync-fetch-fn","type":"function","z":"voiceflow-main","name":"Fetch ElevenLabs Voices","func":"const apiKey = global.get('ELEVENLABS_API_KEY') || '';\nif (!apiKey) {\n    msg.payload = { error: 'ELEVENLABS_API_KEY not configured' };\n    msg.statusCode = 400;\n    return [null, msg];\n}\nmsg.url = 'https://api.elevenlabs.io/v1/voices';\nmsg.headers = { 'xi-api-key': apiKey, 'Accept': 'application/json' };\nmsg.method = 'GET';\nreturn [msg, null];","outputs":2,"noerr":0,"initialize":"","finalize":"","libs":[],"x":400,"y":1020,"wires":[["sync-http-req"],["sync-err-resp"]]
+    },
+    {
+        "id":"sync-http-req","type":"http request","z":"voiceflow-main","name":"ElevenLabs Voices API","method":"use","ret":"obj","paytoqs":"ignore","url":"","tls":"","persist":false,"proxy":"","insecureHTTPParser":false,"authType":"","senderr":false,"autoSetContentType":false,"x":630,"y":1000,"wires":[["sync-format-fn"]]
+    },
+    {
+        "id":"sync-format-fn","type":"function","z":"voiceflow-main","name":"Format Voices","func":"if (msg.statusCode !== 200 || !msg.payload || !msg.payload.voices) {\n    msg.payload = { error: 'Failed to fetch voices: ' + (msg.statusCode || 'unknown error') };\n    msg.statusCode = 502;\n    return msg;\n}\nconst voices = msg.payload.voices.map(v => ({\n    id: v.voice_id,\n    name: v.name,\n    description: v.labels ? Object.values(v.labels).join(', ') : '',\n    gender: (v.labels && v.labels.gender) || 'unknown',\n    language: (v.labels && v.labels.language) || 'en-US',\n    accent: (v.labels && v.labels.accent) || 'neutral',\n    provider: 'ElevenLabs',\n    preview_url: v.preview_url || ''\n}));\nglobal.set('voiceLibrary', voices);\nmsg.payload = { success: true, count: voices.length, voices: voices };\nmsg.statusCode = 200;\nreturn msg;","outputs":1,"noerr":0,"initialize":"","finalize":"","libs":[],"x":820,"y":1000,"wires":[["sync-resp"]]
+    },
+    {
+        "id":"sync-resp","type":"http response","z":"voiceflow-main","name":"","statusCode":"","headers":{},"x":980,"y":1000,"wires":[]
+    },
+    {
+        "id":"sync-err-resp","type":"http response","z":"voiceflow-main","name":"","statusCode":"","headers":{},"x":630,"y":1040,"wires":[]
     }
 ]

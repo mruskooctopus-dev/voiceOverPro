@@ -382,6 +382,23 @@ async function loadSettings() {
     } catch (err) {
         console.error('Failed to load settings:', err);
     }
+
+    // Load provider key status
+    fetch('/api/v1/settings/providers')
+        .then(r => r.json())
+        .then(data => {
+            if (data.providers) {
+                const p = data.providers;
+                const elInput = document.getElementById('elevenlabs-api-key');
+                const googleInput = document.getElementById('google-api-key');
+                const octopusUrlInput = document.getElementById('octopus-api-url');
+                const octopusKeyInput = document.getElementById('octopus-api-key');
+                if (elInput) elInput.placeholder = p.ELEVENLABS_API_KEY_set ? 'â¢â¢â¢â¢' + (p.ELEVENLABS_API_KEY||'').replace('â¢â¢â¢â¢','') : 'Enter ElevenLabs API key...';
+                if (googleInput) googleInput.placeholder = p.GOOGLE_TTS_API_KEY_set ? 'Key configured' : 'Enter Google TTS API key...';
+                if (octopusUrlInput) octopusUrlInput.placeholder = p.OCTOPUS_API_URL_set ? 'URL configured' : 'https://your-octopus-server/api';
+                if (octopusKeyInput) octopusKeyInput.placeholder = p.OCTOPUS_API_KEY_set ? 'Key configured' : 'Enter Octopus API key...';
+            }
+        }).catch(() => {});
 }
 
 async function saveSettings() {
@@ -410,6 +427,59 @@ async function saveSettings() {
     } catch (err) {
         showToast('Error saving settings: ' + err.message, 'error');
     }
+}
+
+function saveProviderKeys() {
+    const payload = {};
+    const elKey = document.getElementById('elevenlabs-api-key')?.value?.trim();
+    const googleKey = document.getElementById('google-api-key')?.value?.trim();
+    const octopusUrl = document.getElementById('octopus-api-url')?.value?.trim();
+    const octopusKey = document.getElementById('octopus-api-key')?.value?.trim();
+    if (elKey) payload.ELEVENLABS_API_KEY = elKey;
+    if (googleKey) payload.GOOGLE_TTS_API_KEY = googleKey;
+    if (octopusUrl) payload.OCTOPUS_API_URL = octopusUrl;
+    if (octopusKey) payload.OCTOPUS_API_KEY = octopusKey;
+    if (Object.keys(payload).length === 0) {
+        showToast('No keys to save â fields are empty', 'warning');
+        return;
+    }
+    fetch('/api/v1/settings/providers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message || 'Provider keys saved', 'success');
+            document.getElementById('elevenlabs-api-key').value = '';
+            document.getElementById('google-api-key').value = '';
+            document.getElementById('octopus-api-key').value = '';
+            loadSettings();
+        } else {
+            showToast('Failed to save keys', 'error');
+        }
+    })
+    .catch(() => showToast('Error saving provider keys', 'error'));
+}
+
+function syncVoices() {
+    const btn = document.getElementById('sync-voices-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Syncing...'; }
+    fetch('/api/v1/voices/sync', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Synced ${data.count} voices from ElevenLabs`, 'success');
+                loadVoices();
+            } else {
+                showToast(data.error || 'Sync failed', 'error');
+            }
+        })
+        .catch(() => showToast('Error syncing voices', 'error'))
+        .finally(() => {
+            if (btn) { btn.disabled = false; btn.textContent = 'Sync Voices'; }
+        });
 }
 
 function switchSettingsTab(tab) {
